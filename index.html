@@ -1,0 +1,415 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>WLTH Pay — Demo</title>
+  <meta name="description" content="Demo of the WealthPay platform shell. Clicking 'Pay' hands off to the Pay service frontend." />
+  <link rel="icon" href="data:," />
+
+  <!-- ============================================================
+       DEMO CONFIG
+       Change PAY_REDIRECT_URL to the deployed Pay frontend URL.
+       Kept as google.com for now (placeholder).
+       ============================================================ -->
+  <script>
+    window.PAY_REDIRECT_URL = "https://www.google.com";
+  </script>
+
+  <style>
+    :root {
+      --bg: #f4f4f4;
+      --surface: #ffffff;
+      --text: #292e3a;
+      --text-dimmed: #6f7682;
+      --text-muted: #8a909c;
+      --blue-500: #1445c7;
+      --blue-400: #3d6ae0;
+      --blue-600: #1039a8;
+      --blue-soft: #eef1ff;
+      --border: #eceff0;
+      --chip-border: #d7dadf;
+      --chip-hover: #ececec;
+      --shadow-menu: 0 20px 25px -5px rgba(0,0,0,.1), 0 8px 10px -6px rgba(0,0,0,.1);
+      --font: "Inter", SuisseIntl, system-ui, -apple-system, "Segoe UI", Roboto, sans-serif;
+    }
+
+    * { box-sizing: border-box; margin: 0; padding: 0; }
+
+    html, body {
+      background: var(--bg);
+      color: var(--text);
+      font-family: var(--font);
+      min-height: 100vh;
+      -webkit-font-smoothing: antialiased;
+      text-rendering: optimizeLegibility;
+    }
+
+    a { text-decoration: none; color: inherit; }
+    button { font-family: inherit; cursor: pointer; border: none; background: none; }
+
+    /* ---------------- Demo notice ---------------- */
+    .demo-bar {
+      background: var(--blue-soft);
+      color: var(--blue-500);
+      font-size: 13px;
+      font-weight: 500;
+      text-align: center;
+      padding: 8px 16px;
+      border-bottom: 1px solid var(--border);
+    }
+    .demo-bar b { font-weight: 600; }
+
+    /* ---------------- Header ---------------- */
+    header {
+      height: 100px;
+      display: flex;
+      align-items: center;
+    }
+    .header-inner {
+      width: 100%;
+      max-width: 1240px;
+      margin: 0 auto;
+      padding: 0 24px;
+      display: flex;
+      align-items: center;
+      gap: 16px;
+    }
+
+    .brand { display: flex; align-items: center; gap: 10px; margin-right: 6px; }
+    .logo {
+      font-size: 27px;
+      font-weight: 600;
+      letter-spacing: .04em;
+      color: var(--text);
+      user-select: none;
+    }
+    .demo-tag {
+      font-size: 11px;
+      font-weight: 600;
+      letter-spacing: .08em;
+      text-transform: uppercase;
+      color: var(--blue-500);
+      background: var(--blue-soft);
+      border: 1px solid #dbe2fb;
+      padding: 3px 8px;
+      border-radius: 9999px;
+    }
+
+    /* Pay dropdown trigger */
+    .pay-dropdown { position: relative; }
+    .pay-trigger {
+      display: flex;
+      align-items: center;
+      background: var(--surface);
+      border-radius: 9999px;
+      padding: 8px 12px;
+      transition: background .15s ease;
+    }
+    .pay-trigger:hover { background: #fafafa; }
+    .pay-pill {
+      display: flex;
+      align-items: center;
+      gap: 8px;
+      border: 2px solid var(--blue-500);
+      border-radius: 24px;
+      background: var(--bg);
+      color: var(--text);
+      padding: 8px 14px;
+      font-size: 15px;
+      font-weight: 500;
+    }
+    .pay-pill .chevron { transition: transform .2s ease; color: var(--text-dimmed); }
+    .pay-dropdown.open .pay-pill .chevron { transform: rotate(180deg); }
+
+    /* Dropdown menu */
+    .pay-menu {
+      position: absolute;
+      top: calc(100% + 10px);
+      left: 8px;
+      min-width: 224px;
+      background: var(--surface);
+      border: 1px solid var(--border);
+      border-radius: 20px;
+      box-shadow: var(--shadow-menu);
+      padding: 16px;
+      display: none;
+      flex-direction: column;
+      gap: 2px;
+      z-index: 50;
+    }
+    .pay-dropdown.open .pay-menu { display: flex; animation: pop .14s ease; }
+    @keyframes pop { from { opacity: 0; transform: translateY(-4px); } to { opacity: 1; transform: none; } }
+
+    .menu-item {
+      display: flex;
+      align-items: center;
+      gap: 12px;
+      width: 100%;
+      padding: 10px 12px;
+      border-radius: 16px;
+      font-size: 15px;
+      font-weight: 500;
+      color: var(--text);
+      text-align: left;
+      transition: background .12s ease;
+    }
+    .menu-item:hover { background: #f5f6f7; }
+    .menu-item svg { width: 20px; height: 20px; color: var(--text-dimmed); flex-shrink: 0; }
+    .menu-item.current { background: var(--blue-soft); color: var(--blue-500); }
+    .menu-item.current svg { color: var(--blue-400); }
+    .menu-item.current:hover { background: #e6ebff; }
+
+    .spacer { flex: 1; }
+
+    /* Right cluster */
+    .right-cluster { display: flex; align-items: center; gap: 12px; }
+    .acct-chip {
+      display: flex;
+      align-items: center;
+      gap: 10px;
+      border: 1px solid var(--chip-border);
+      border-radius: 24px;
+      padding: 7px 12px 7px 8px;
+      font-size: 14px;
+      font-weight: 500;
+      background: transparent;
+      transition: background .12s ease;
+    }
+    .acct-chip:hover { background: var(--chip-hover); }
+    .acct-badge {
+      width: 26px; height: 26px;
+      border-radius: 9999px;
+      background: #e9eaec;
+      color: var(--text-dimmed);
+      font-size: 11px;
+      font-weight: 600;
+      display: inline-flex;
+      align-items: center;
+      justify-content: center;
+    }
+    .acct-chip .chev { color: var(--text-dimmed); width: 16px; height: 16px; }
+    .avatar {
+      width: 42px; height: 42px;
+      border-radius: 9999px;
+      background: var(--text);
+      color: #fff;
+      font-size: 14px; font-weight: 600;
+      display: inline-flex;
+      align-items: center;
+      justify-content: center;
+    }
+
+    /* ---------------- Hero ---------------- */
+    main {
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      justify-content: center;
+      text-align: center;
+      padding: 80px 24px 96px;
+    }
+    .hero-eyebrow {
+      font-size: 13px;
+      font-weight: 600;
+      letter-spacing: .04em;
+      color: var(--blue-500);
+      margin-bottom: 14px;
+    }
+    .hero h1 {
+      font-size: 40px;
+      font-weight: 600;
+      letter-spacing: -.02em;
+      line-height: 1.1;
+    }
+    .hero p {
+      max-width: 540px;
+      margin: 16px auto 0;
+      color: var(--text-dimmed);
+      font-size: 16px;
+      line-height: 1.6;
+    }
+    .btn-primary {
+      display: inline-flex;
+      align-items: center;
+      gap: 8px;
+      background: var(--blue-500);
+      color: #fff;
+      font-size: 16px;
+      font-weight: 500;
+      padding: 14px 24px;
+      border-radius: 12px;
+      margin-top: 32px;
+      transition: background .15s ease, transform .1s ease;
+    }
+    .btn-primary:hover { background: var(--blue-600); }
+    .btn-primary:active { transform: translateY(1px); }
+    .btn-primary svg { width: 18px; height: 18px; }
+    .hero-hint {
+      margin-top: 18px;
+      font-size: 13px;
+      color: var(--text-muted);
+    }
+
+    /* Toast */
+    .toast {
+      position: fixed;
+      bottom: 24px; left: 50%;
+      transform: translateX(-50%) translateY(20px);
+      background: var(--text);
+      color: #fff;
+      font-size: 14px;
+      font-weight: 500;
+      padding: 12px 20px;
+      border-radius: 12px;
+      box-shadow: var(--shadow-menu);
+      opacity: 0;
+      pointer-events: none;
+      transition: opacity .2s ease, transform .2s ease;
+      z-index: 100;
+    }
+    .toast.show { opacity: 1; transform: translateX(-50%) translateY(0); }
+
+    @media (max-width: 720px) {
+      .acct-chip { display: none; }
+      .hero h1 { font-size: 30px; }
+    }
+  </style>
+</head>
+<body>
+  <div class="demo-bar">
+    <b>WLTH Pay — Demo shell.</b> Open the <b>Pay</b> menu (or use the button below) to hand off to the Pay service frontend.
+  </div>
+
+  <header>
+    <div class="header-inner">
+      <div class="brand">
+        <span class="logo">WLTH</span>
+        <span class="demo-tag">Demo</span>
+      </div>
+
+      <!-- Pay service switcher -->
+      <div class="pay-dropdown" id="payDropdown">
+        <button class="pay-trigger" id="payTrigger" aria-haspopup="menu" aria-expanded="false">
+          <span class="pay-pill">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="color:var(--blue-500)"><rect width="20" height="14" x="2" y="5" rx="2"/><line x1="2" x2="22" y1="10" y2="10"/></svg>
+            Pay
+            <svg class="chevron" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" width="16" height="16"><path d="m6 9 6 6 6-6"/></svg>
+          </span>
+        </button>
+
+        <div class="pay-menu" role="menu" aria-label="Services">
+          <button class="menu-item" role="menuitem" data-service="broker">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M16 20V4a2 2 0 0 0-2-2h-4a2 2 0 0 0-2 2v16"/><rect width="20" height="14" x="2" y="6" rx="2"/></svg>
+            Broker
+          </button>
+          <button class="menu-item current" role="menuitem" data-service="pay" id="payService">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect width="20" height="14" x="2" y="5" rx="2"/><line x1="2" x2="22" y1="10" y2="10"/></svg>
+            Pay
+          </button>
+          <button class="menu-item" role="menuitem" data-service="shareholder">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="22 7 13.5 15.5 8.5 10.5 2 17"/><polyline points="16 7 22 7 22 13"/></svg>
+            Shareholder
+          </button>
+          <button class="menu-item" role="menuitem" data-service="dashboard">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect width="7" height="9" x="3" y="3" rx="1"/><rect width="7" height="5" x="14" y="3" rx="1"/><rect width="7" height="9" x="14" y="12" rx="1"/><rect width="7" height="5" x="3" y="16" rx="1"/></svg>
+            Dashboard
+          </button>
+          <button class="menu-item" role="menuitem" data-service="customer">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M19 21v-2a4 4 0 0 0-4-4H9a4 4 0 0 0-4 4v2"/><circle cx="12" cy="7" r="4"/></svg>
+            Customer
+          </button>
+        </div>
+      </div>
+
+      <div class="spacer"></div>
+
+      <div class="right-cluster">
+        <button class="acct-chip">
+          <span class="acct-badge">AC</span>
+          Acme Corp
+          <svg class="chev" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="m6 9 6 6 6-6"/></svg>
+        </button>
+        <div class="avatar">AJ</div>
+      </div>
+    </div>
+  </header>
+
+  <main>
+    <div class="hero">
+      <div class="hero-eyebrow">WealthPay Platform</div>
+      <h1>Welcome to WealthPay</h1>
+      <p>This is a demo of the WealthPay platform shell. The Pay service is handled by our team — launch it below, or pick it from the Pay menu above.</p>
+      <button class="btn-primary" id="launchPay">
+        Launch Pay
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M5 12h14"/><path d="m12 5 7 7-7 7"/></svg>
+      </button>
+      <div class="hero-hint">Broker, Shareholder, Dashboard and Customer are placeholders in this demo.</div>
+    </div>
+  </main>
+
+  <div class="toast" id="toast"></div>
+
+  <script>
+    (function () {
+      var dropdown = document.getElementById("payDropdown");
+      var trigger = document.getElementById("payTrigger");
+      var payService = document.getElementById("payService");
+      var launchPay = document.getElementById("launchPay");
+      var toast = document.getElementById("toast");
+      var toastTimer;
+
+      function open() {
+        dropdown.classList.add("open");
+        trigger.setAttribute("aria-expanded", "true");
+      }
+      function close() {
+        dropdown.classList.remove("open");
+        trigger.setAttribute("aria-expanded", "false");
+      }
+      function toggle() {
+        dropdown.classList.contains("open") ? close() : open();
+      }
+      function showToast(msg) {
+        toast.textContent = msg;
+        toast.classList.add("show");
+        clearTimeout(toastTimer);
+        toastTimer = setTimeout(function () { toast.classList.remove("show"); }, 2200);
+      }
+      function goToPay() {
+        window.location.href = window.PAY_REDIRECT_URL;
+      }
+
+      trigger.addEventListener("click", function (e) {
+        e.stopPropagation();
+        toggle();
+      });
+
+      // Close on outside click / Escape
+      document.addEventListener("click", function (e) {
+        if (!dropdown.contains(e.target)) close();
+      });
+      document.addEventListener("keydown", function (e) {
+        if (e.key === "Escape") close();
+      });
+
+      // Pay -> hand off to the Pay service frontend
+      payService.addEventListener("click", function (e) {
+        e.stopPropagation();
+        goToPay();
+      });
+      launchPay.addEventListener("click", goToPay);
+
+      // Other services are demo-only
+      document.querySelectorAll('.menu-item:not(#payService)').forEach(function (el) {
+        el.addEventListener("click", function (e) {
+          e.stopPropagation();
+          close();
+          var name = el.getAttribute("data-service");
+          showToast("Demo only — only “Pay” is wired up (" + name + ")");
+        });
+      });
+    })();
+  </script>
+</body>
+</html>
