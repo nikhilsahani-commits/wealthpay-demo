@@ -110,14 +110,18 @@
       display: flex;
       align-items: center;
       gap: 8px;
-      border: 2px solid var(--blue-500);
+      border: 1px solid #c4c9d1;
       border-radius: 24px;
-      background: var(--bg);
+      background: transparent;
       color: var(--text);
       padding: 8px 14px;
       font-size: 15px;
       font-weight: 500;
+      transition: border-color .15s ease, background .15s ease;
     }
+    .pay-trigger:hover .pay-pill { border-color: #a9afb9; }
+    /* Highlight the trigger while the menu is open */
+    .pay-dropdown.open .pay-pill { border-color: var(--blue-500); }
     .pay-pill .chevron { transition: transform .2s ease; color: var(--text-dimmed); }
     .pay-dropdown.open .pay-pill .chevron { transform: rotate(180deg); }
 
@@ -291,7 +295,7 @@
       <div class="pay-dropdown" id="payDropdown">
         <button class="pay-trigger" id="payTrigger" aria-haspopup="menu" aria-expanded="false">
           <span class="pay-pill">
-            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="color:var(--blue-500)"><rect width="20" height="14" x="2" y="5" rx="2"/><line x1="2" x2="22" y1="10" y2="10"/></svg>
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="color:var(--text-dimmed)"><rect width="20" height="14" x="2" y="5" rx="2"/><line x1="2" x2="22" y1="10" y2="10"/></svg>
             Pay
             <svg class="chevron" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" width="16" height="16"><path d="m6 9 6 6 6-6"/></svg>
           </span>
