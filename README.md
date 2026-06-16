@@ -24,12 +24,11 @@ The hand-off URL lives in one place at the top of [`index.html`](./index.html):
 
 ```html
 <script>
-  window.PAY_REDIRECT_URL = "https://www.google.com"; // <- change to the deployed Pay frontend URL
+  window.PAY_REDIRECT_URL = "https://wealth-pay-web-ui.vercel.app/"; // deployed Pay frontend
 </script>
 ```
 
-Currently set to `https://www.google.com` as a placeholder. Update it to the real Pay frontend
-URL once that repo is deployed.
+Points to the deployed Pay frontend. Update it here if that URL ever changes.
 
 ## Run locally
 
