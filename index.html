@@ -8,11 +8,52 @@
   <link rel="icon" href="data:," />
 
   <!-- ============================================================
-       DEMO CONFIG
-       PAY_REDIRECT_URL points to the deployed Pay frontend.
+       DEMO CONFIG  (dev env only)
+       The shell mints a WLTH SSO token and hands off to the dev BFF,
+       which verifies it, find-or-creates the user, sets the session
+       cookie, and redirects into the Pay web UI.
+         - "demo account"  => fixed wlthId (same seeded user every time)
+         - "fresh account" => unique wlthId (triggers KYC onboarding)
+       ssoUrl is the dev BFF SSO endpoint (BFF is served at /api/*).
+       privateKeyPkcs8Pem is the RS256 key whose public half is the
+       dev BFF's WLTH_SSO_PUBLIC_KEY. DEV ONLY — it is visible in page
+       source, so this must never point at a real/prod key.
        ============================================================ -->
   <script>
-    window.PAY_REDIRECT_URL = "https://wealth-pay-web-ui.vercel.app/";
+    window.WLTH_SSO = {
+      ssoUrl: "https://dev-wealthpay.junomoney.org/api/sso/wlth",
+      demoAccount: { wlthId: "new-user-1", email: "new-user-1@wlth.test", name: "Demo User" },
+      // Dev RS256 private key (PKCS#8 PEM); public half is the dev BFF's
+      // WLTH_SSO_PUBLIC_KEY. ponytail: dev-only, key intentionally inline.
+      privateKeyPkcs8Pem: `-----BEGIN PRIVATE KEY-----
+MIIEvAIBADANBgkqhkiG9w0BAQEFAASCBKYwggSiAgEAAoIBAQCmk8wXUHhNCTCt
+agVkHcrVoe8wn3YmzY4zV35XGAls8fGSVz/kiBa+SRlEjnnWqGOFP2IxA5ZgSaH0
+CfYDnYn8t8pLmR4b6KcnvXEFnAYiyZYx/Aj/6y/ys/223tsU6Pr6Ux+0NE2NnPZo
+ZVnL+47V5jJIoZHX3Oolh16lZWWR71IzyVbOituoCsKKKTLmmdO4gYSm8dNnW3uf
+Zux6uRxDNl/RumPF61ROwFoHddQbicpCHboG0GYTQ6noUypUqU6QQELSIHHj4ENt
+Z/Z1h+1jvB3zKarSTt/naCKohBNYE0V9wjEFtorjcQa52nBeJInLYP2cjKtJQ3NO
+Vy5wXYcrAgMBAAECggEAJal99/l8MaK1zEePz3qC7TlPLLWpD43jLE2IZaWsH+M2
+BKnQatmwFrbNTThPaM6qrapOh5lxivSq9tO3uUqJs8dUKDKG4bWA8ZW985A6vOvK
+FyQOXtpsfVnfr9SEQR6J/EYGAYbfz/hgp+reWiXWvhrtXImXQXCTygdoyUl7JPrT
+DkLG9a2Fzfabp5K4B3n1seSQXTuUGdMDJICjb+ndtfYJljGTEjSWF0oTy0ZBOfBq
+gWiZIID7DLTWkFObWxDELQE8PdvHEOkzvJ6mwxGK0wTw81RXsc159UTAgH6f6Sa9
+XG46gYsUmB1N49MvgEEx6xjOor6xGAXv04kQUQGIlQKBgQDBjo35bHzR0rqYFszL
+IpX8SCc4R/zwYp2R/zlYpnoe9wTQT6fKBf76FgQHcIPZYwEUmdH9zn21MauBsI4n
+ZNfm6aDgIMAAqEo1A3VFW39/g+gyfFxvgVo6W+S/ofaYLEec4/eB4MZPc6dMXlq5
+Ie9hax9cMa+AtG9uJHXjgQ9qbwKBgQDcUQ/XLVW0AroWmKwrvhJrly/IvfIgGAv6
+jFJyhLTtht7E3Rw+wZis6S5vVQ8d5t49XJHNC8FmcwHPIq4iPU+vnOxVGl4wYXp0
+NlXWT/Cs5AEVAGpfgAg775X7DsqiXhX9+udJf/FchvMLpsgTBQNn7rwcYnhpEW2u
+6Mhflow9BQKBgCbzzmSkzZXYZ87Vv88dnbuQtbvg2OlznyxThbHuhuMWaTSW4ziH
+7mFb7uGkZhRolT4VGqqOVMQTQ+Wsp18ML1r8J3EThjBbrdtvX7leiZEa9a67Ukrq
+aEMYXTenm53SQ3MyeYv8tUwmBUQcNPvO9YLQcRY3tY8cQNSUp9jqDzUnAoGAYnph
+aD89Zb8qSttnag4F0c28cDBnP+0/vXhnigTDksCMZtamv25tvixksyMEJMuDX043
+Zb3xbsfNcTcBOxDIw6iTAt9MZrfLspJu/+Kvo7guu6J56cIi7BeFpLjR3o3LqsEy
+DOqBimhPz093cvj0sspFjzJ8vAosStiGaCO0/7kCgYAhrMt9mtBtN41uzIfKurXc
+s4xccXzgR+WRyDZUe+QnZ6QBeIJ62JEFpVDZA2TEeQzq1C0MT9o0YxayZPQdJFuH
+09wLeKpYuKWu/3ZFuun9rHBsAc/I/1LNOOuJbKBoZLHuT3r10fVaBtMK48QH2hPJ
+2e/0+cUsYKHePVZg7fsOKQ==
+-----END PRIVATE KEY-----`,
+    };
   </script>
 
   <style>
@@ -27,9 +68,10 @@
       --blue-600: #1039a8;
       --blue-soft: #eef1ff;
       --border: #eceff0;
-      --pill-border: #c4c9d1;
-      --chip-border: #d7dadf;
+      --pill-border: #b8c5ca;
+      --chip-border: #b8c5ca;
       --chip-hover: #ececec;
+      --slate: #4c5a68;
       --shadow-menu: 0 20px 25px -5px rgba(0,0,0,.1), 0 8px 10px -6px rgba(0,0,0,.1);
       --font: "Inter", SuisseIntl, system-ui, -apple-system, "Segoe UI", Roboto, sans-serif;
     }
@@ -77,13 +119,7 @@
     }
 
     .brand { display: flex; align-items: center; gap: 10px; margin-right: 6px; }
-    .logo {
-      font-size: 27px;
-      font-weight: 600;
-      letter-spacing: .04em;
-      color: var(--text);
-      user-select: none;
-    }
+    .logo { height: 20px; width: auto; color: var(--text); user-select: none; }
     .demo-tag {
       font-size: 11px;
       font-weight: 600;
@@ -202,14 +238,34 @@
     }
     .acct-chip .chev { color: var(--text-dimmed); width: 16px; height: 16px; }
     .avatar {
-      width: 42px; height: 42px;
+      width: 36px; height: 36px;
       border-radius: 9999px;
       background: var(--text);
       color: #fff;
-      font-size: 14px; font-weight: 600;
+      font-size: 12px; font-weight: 600;
       display: inline-flex;
       align-items: center;
       justify-content: center;
+    }
+    .bell {
+      position: relative;
+      width: 36px; height: 36px;
+      border-radius: 9999px;
+      background: var(--slate);
+      color: #fff;
+      display: inline-flex;
+      align-items: center;
+      justify-content: center;
+    }
+    .bell svg { width: 18px; height: 18px; }
+    .bell::after {
+      content: "";
+      position: absolute;
+      top: 7px; right: 8px;
+      width: 8px; height: 8px;
+      border-radius: 9999px;
+      background: #22c55e;
+      border: 2px solid var(--slate);
     }
 
     /* ---------------- Hero ---------------- */
@@ -257,6 +313,30 @@
     .btn-primary:hover { background: var(--blue-600); }
     .btn-primary:active { transform: translateY(1px); }
     .btn-primary svg { width: 18px; height: 18px; }
+    .btn-secondary {
+      display: inline-flex;
+      align-items: center;
+      gap: 8px;
+      background: var(--surface);
+      color: var(--text);
+      font-size: 16px;
+      font-weight: 500;
+      padding: 14px 24px;
+      border: 1px solid var(--pill-border);
+      border-radius: 12px;
+      transition: background .15s ease, border-color .15s ease, transform .1s ease;
+    }
+    .btn-secondary:hover { background: #fafafa; border-color: #a9afb9; }
+    .btn-secondary:active { transform: translateY(1px); }
+    .btn-secondary svg { width: 18px; height: 18px; color: var(--text-dimmed); }
+    .hero-actions {
+      display: flex;
+      gap: 12px;
+      justify-content: center;
+      flex-wrap: wrap;
+      margin-top: 32px;
+    }
+    .hero-actions .btn-primary { margin-top: 0; }
     .hero-hint {
       margin-top: 18px;
       font-size: 13px;
@@ -277,7 +357,7 @@
   <header>
     <div class="header-inner">
       <div class="brand">
-        <span class="logo">WLTH</span>
+        <svg class="logo" viewBox="0 0 80 19" fill="none" aria-label="WLTH"><path d="M6.7765 15.7156L11.4968 0.00566123H15.0306L19.6717 15.6895L23.8111 0.00566123H26.6327L21.3315 18.5507H18.0356L13.2632 2.39017L8.41146 18.5507H5.06227L0 0.00566123H2.82155L6.7765 15.7156ZM33.5439 0V16.1583H44.3592V18.5507H30.942V0H33.5439ZM59.5052 2.39244H52.646V18.5507H50.0453V2.39244H43.1103V0H59.5052V2.39244ZM65.856 8.07857H77.3992V0H80V18.5507H77.3992V10.4722H65.856V18.5507H63.254V0H65.856V8.07857Z" fill="currentColor"/></svg>
         <span class="demo-tag">Demo</span>
       </div>
 
@@ -323,6 +403,9 @@
           Acme Corp
           <svg class="chev" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="m6 9 6 6 6-6"/></svg>
         </button>
+        <button class="bell" aria-label="Notifications">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M10.268 21a2 2 0 0 0 3.464 0"/><path d="M3.262 15.326A1 1 0 0 0 4 17h16a1 1 0 0 0 .74-1.673C19.41 13.956 18 12.499 18 8A6 6 0 0 0 6 8c0 4.499-1.411 5.956-2.738 7.326"/></svg>
+        </button>
         <div class="avatar">AJ</div>
       </div>
     </div>
@@ -332,12 +415,18 @@
     <div class="hero">
       <div class="hero-eyebrow">WealthPay Platform</div>
       <h1>Welcome to WealthPay</h1>
-      <p>This is a demo of the WealthPay platform shell. The Pay service is handled by our team — launch it below, or choose Pay from the services menu above.</p>
-      <button class="btn-primary" id="launchPay">
-        Launch Pay
-        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M5 12h14"/><path d="m12 5 7 7-7 7"/></svg>
-      </button>
-      <div class="hero-hint">Broker, Shareholder, Dashboard and Customer are placeholders in this demo.</div>
+      <p>This is a demo of the WealthPay platform shell. The Pay service is handled by our team — jump into the demo account, or create a fresh one to walk through onboarding.</p>
+      <div class="hero-actions">
+        <button class="btn-primary" id="launchDemo">
+          Use demo account
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M5 12h14"/><path d="m12 5 7 7-7 7"/></svg>
+        </button>
+        <button class="btn-secondary" id="launchFresh">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M5 12h14"/><path d="M12 5v14"/></svg>
+          Create fresh account
+        </button>
+      </div>
+      <div class="hero-hint">Both open Pay on the dev environment. Fresh accounts start at KYC onboarding. Broker, Shareholder, Dashboard and Customer are placeholders.</div>
     </div>
   </main>
 
@@ -345,10 +434,55 @@
     (function () {
       var dropdown = document.getElementById("payDropdown");
       var trigger = document.getElementById("payTrigger");
-      var launchPay = document.getElementById("launchPay");
+      var launchDemo = document.getElementById("launchDemo");
+      var launchFresh = document.getElementById("launchFresh");
       var items = document.querySelectorAll(".menu-item");
       var pillIcon = document.querySelector(".pill-icon");
       var pillLabel = document.querySelector(".pill-label");
+
+      // ---- WLTH SSO token minting (RS256, client-side via Web Crypto) ----
+      function b64url(bytes) {
+        var arr = bytes instanceof Uint8Array ? bytes : new Uint8Array(bytes);
+        var bin = "";
+        for (var i = 0; i < arr.length; i++) bin += String.fromCharCode(arr[i]);
+        return btoa(bin).replace(/\+/g, "-").replace(/\//g, "_").replace(/=+$/, "");
+      }
+      function b64urlStr(str) { return b64url(new TextEncoder().encode(str)); }
+      function pemToPkcs8(pem) {
+        var body = pem.replace(/-----[^-]+-----/g, "").replace(/\s+/g, "");
+        var raw = atob(body);
+        var buf = new Uint8Array(raw.length);
+        for (var i = 0; i < raw.length; i++) buf[i] = raw.charCodeAt(i);
+        return buf.buffer;
+      }
+      async function mintToken(claims, pem) {
+        var key = await crypto.subtle.importKey(
+          "pkcs8", pemToPkcs8(pem),
+          { name: "RSASSA-PKCS1-v1_5", hash: "SHA-256" }, false, ["sign"]
+        );
+        var now = Math.floor(Date.now() / 1000);
+        var header = b64urlStr(JSON.stringify({ alg: "RS256", typ: "JWT" }));
+        var payload = b64urlStr(JSON.stringify(Object.assign({ iat: now, exp: now + 300 }, claims)));
+        var data = header + "." + payload;
+        var sig = await crypto.subtle.sign("RSASSA-PKCS1-v1_5", key, new TextEncoder().encode(data));
+        return data + "." + b64url(sig);
+      }
+      async function handoff(mode) {
+        var cfg = window.WLTH_SSO || {};
+        if (!cfg.privateKeyPkcs8Pem) {
+          alert("Dev SSO key not configured: set window.WLTH_SSO.privateKeyPkcs8Pem in index.html.");
+          return;
+        }
+        var claims = mode === "demo"
+          ? cfg.demoAccount
+          : { wlthId: "wlth-" + crypto.randomUUID(), email: "fresh-" + Date.now() + "@wlth.test", name: "New User" };
+        try {
+          var token = await mintToken(claims, cfg.privateKeyPkcs8Pem);
+          window.open(cfg.ssoUrl + "?token=" + encodeURIComponent(token), "_blank", "noopener");
+        } catch (e) {
+          alert("Could not mint SSO token: " + e.message);
+        }
+      }
 
       function open() {
         dropdown.classList.add("open");
@@ -360,9 +494,6 @@
       }
       function toggle() {
         dropdown.classList.contains("open") ? close() : open();
-      }
-      function goToPay() {
-        window.location.href = window.PAY_REDIRECT_URL;
       }
 
       // Switch the displayed service (placeholders only — Pay is handled separately)
@@ -387,13 +518,14 @@
         if (e.key === "Escape") close();
       });
 
-      launchPay.addEventListener("click", goToPay);
+      launchDemo.addEventListener("click", function () { handoff("demo"); });
+      launchFresh.addEventListener("click", function () { handoff("fresh"); });
 
       items.forEach(function (el) {
         el.addEventListener("click", function (e) {
           e.stopPropagation();
           if (el.getAttribute("data-service") === "pay") {
-            goToPay();            // Pay hands off to the Pay frontend
+            handoff("demo");      // Pay hands off to the dev Pay UI (demo account)
             return;
           }
           selectService(el);      // other services just switch the shown value
