@@ -23,6 +23,8 @@
     window.WLTH_SSO = {
       ssoUrl: "https://dev-wealthpay.junomoney.org/api/sso/wlth",
       demoAccount: { wlthId: "wlth-4ed90f5f-86a9-44bf-904f-41a1c31e1675", email: "test@test.com", name: "Nikhil Sahani" },
+      // Existing user to jump straight into — opens whatever KYC state they're in.
+      kycAccount: { wlthId: "wlth-30f906ec-aaae-4fac-a646-0f03c7bb4bc2" },
       // Dev RS256 private key (PKCS#8 PEM); public half is the dev BFF's
       // WLTH_SSO_PUBLIC_KEY. ponytail: dev-only, key intentionally inline.
       privateKeyPkcs8Pem: `-----BEGIN PRIVATE KEY-----
@@ -483,6 +485,10 @@ s4xccXzgR+WRyDZUe+QnZ6QBeIJ62JEFpVDZA2TEeQzq1C0MT9o0YxayZPQdJFuH
           <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M5 12h14"/><path d="M12 5v14"/></svg>
           Create fresh account
         </button>
+        <button class="btn-secondary" id="launchKyc">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M20 6 9 17l-5-5"/></svg>
+          Open KYC account
+        </button>
       </div>
       <div class="hero-hint">Both open Pay on the dev environment. Fresh accounts start at KYC onboarding. Broker, Shareholder, Dashboard and Customer are placeholders.</div>
       <a class="guide-link" href="guide.html" target="_blank" rel="noopener">
@@ -506,6 +512,7 @@ s4xccXzgR+WRyDZUe+QnZ6QBeIJ62JEFpVDZA2TEeQzq1C0MT9o0YxayZPQdJFuH
       var trigger = document.getElementById("payTrigger");
       var launchDemo = document.getElementById("launchDemo");
       var launchFresh = document.getElementById("launchFresh");
+      var launchKyc = document.getElementById("launchKyc");
       var items = document.querySelectorAll(".menu-item");
       var pillIcon = document.querySelector(".pill-icon");
       var pillLabel = document.querySelector(".pill-label");
@@ -543,8 +550,8 @@ s4xccXzgR+WRyDZUe+QnZ6QBeIJ62JEFpVDZA2TEeQzq1C0MT9o0YxayZPQdJFuH
           alert("Dev SSO key not configured: set window.WLTH_SSO.privateKeyPkcs8Pem in index.html.");
           return;
         }
-        var claims = mode === "demo"
-          ? cfg.demoAccount
+        var claims = mode === "demo" ? cfg.demoAccount
+          : mode === "kyc" ? cfg.kycAccount
           : { wlthId: "wlth-" + crypto.randomUUID(), email: "fresh-" + Date.now() + "@wlth.test", name: "New User" };
         try {
           var token = await mintToken(claims, cfg.privateKeyPkcs8Pem);
@@ -590,6 +597,7 @@ s4xccXzgR+WRyDZUe+QnZ6QBeIJ62JEFpVDZA2TEeQzq1C0MT9o0YxayZPQdJFuH
 
       launchDemo.addEventListener("click", function () { handoff("demo"); });
       launchFresh.addEventListener("click", function () { handoff("fresh"); });
+      launchKyc.addEventListener("click", function () { handoff("kyc"); });
 
       // ---- Dev tool: approve an existing account by email ----
       // Calls the dev-only BFF endpoint /api/admin/approve-account, which flips
